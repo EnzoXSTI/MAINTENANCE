@@ -1,4 +1,4 @@
-from flask import jsonify, request, make_response
+from flask import jsonify, request
 from funcao import senha_forte, verificar_existente, senha_correspondente
 from flask_bcrypt import generate_password_hash, check_password_hash
 from main import app
@@ -7,10 +7,8 @@ import os
 import datetime
 
 
-# Criar usuário
 @app.route('/criar_usuarios', methods=['POST'])
 def criar_usuarios():
-    # Pega as informações do body
     nome = request.form.get('nome', None)
     email = request.form.get('email', None)
     senha = request.form.get('senha')
@@ -20,7 +18,6 @@ def criar_usuarios():
     # Tipo 0 - ADM | Tipo 1 - professor | Tipo 2 - tecnico
     tipo = request.form.get('tipo', 1)
 
-    # Converte para inteiro
     try:
         tipo = int(tipo)
     except (ValueError, TypeError):
@@ -29,76 +26,53 @@ def criar_usuarios():
     data_cadastro = datetime.datetime.now()
     ativo = 1
     email_confirmacao = 0
+    codigo_verificacao = 0
+    tentativa = 0
 
-    # Conexão com o banco
     con = conexao()
     cur = con.cursor()
 
     try:
-        # Verifica se o nome está vazio
         if nome == None or nome.strip() == '':
             return jsonify({"error": "Nome é uma informação obrigatória."}), 400
 
-        # Verifica se o email está vazio
         if email == None or email.strip() == '':
             return jsonify({"error": "E-mail é uma informação obrigatória."}), 400
 
-        # Verifica se o e-mail já está cadastrado
-        if verificar_existente(email, 2) == False:
+        if verificar_existente(email) == False:
             return jsonify({"error": "E-mail já cadastrado"}), 400
 
-        # Verifica se a senha é forte
         if senha_forte(senha) == False:
             return jsonify({
                 "error": "Senha fraca. A senha deve conter pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais."
             }), 400
 
-        # Verifica se as senhas digitadas correspondem
         if senha_correspondente(senha, confirmar_senha) == False:
             return jsonify({"error": "Senhas não correspondem."}), 400
 
-        # Criptografa a senha
         senha_cripto = generate_password_hash(senha).decode('utf-8')
 
-        # Insere o usuário no banco de dados
-        cur.execute("""INSERT INTO USUARIOS (NOME, EMAIL, SENHA, TIPO, DATA_CADASTRO, ATIVO, EMAIL_CONFIRMACAO)
-                       VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING ID_USUARIO""",
-                    (nome, email, senha_cripto, tipo, data_cadastro, ativo, email_confirmacao))
+        cur.execute("""INSERT INTO USUARIOS (NOME, EMAIL, SENHA, TIPO, DATA_CADASTRO, ATIVO, 
+                                             EMAIL_CONFIRMACAO, CODIGO_VERIFICACAO, TENTATIVA)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING ID_USUARIO""",
+                    (nome, email, senha_cripto, tipo, data_cadastro, ativo,
+                     email_confirmacao, codigo_verificacao, tentativa))  # <<<<<< TENTATIVA ADICIONADO
 
-        # Recupera o ID do usuário recém criado
         id_usuario = cur.fetchone()[0]
         con.commit()
 
-        # Verifica se foi enviada uma foto de perfil
         if foto_perfil:
             try:
-                # Define o nome da imagem com base no ID do usuário
                 nome_imagem = f'{id_usuario}.jpeg'
-
-                # Define a pasta de destino
                 caminho_imagem_destino = os.path.join(app.config['UPLOAD_FOLDER'], 'Usuarios')
-
-                # Cria a pasta caso não exista
                 os.makedirs(caminho_imagem_destino, exist_ok=True)
-
-                # Define o caminho completo da imagem
                 caminho_imagem = os.path.join(caminho_imagem_destino, nome_imagem)
-
-                # Salva a imagem no diretório
                 foto_perfil.save(caminho_imagem)
             except Exception as e:
                 print(f"ERRO ao salvar imagem: {e}")
 
-        # Retorna sucesso com os dados do usuário
         return jsonify({
-            'message': "Usuário cadastrado com sucesso",
-            'usuario': {
-                'id': id_usuario,
-                'nome': nome,
-                'email': email,
-                'tipo': tipo
-            }
-        }), 201
+            'message': "Usuário cadastrado com sucesso"}), 201
 
     except Exception as e:
         print(f"ERRO ao cadastrar usuário: {e}")
@@ -108,13 +82,82 @@ def criar_usuarios():
         con.close()
 
 
-# Editar usuário
+# Login
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email')
+    senha = request.form.get('senha')
+
+    con = conexao()
+    cur = con.cursor()
+
+    try:
+        # Busca o usuário pelo email
+        cur.execute("""SELECT ID_USUARIO, NOME, EMAIL, SENHA, TIPO, ATIVO, EMAIL_CONFIRMACAO
+                       FROM USUARIOS
+                       WHERE EMAIL = ?""", (email,))
+
+        usuario = cur.fetchone()
+
+        if not usuario:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+
+        id_usuario = usuario[0]
+        nome = usuario[1]
+        email_usuario = usuario[2]
+        senha_hash = usuario[3]
+        tipo = usuario[4]
+        ativo = usuario[5]
+        email_confirmado = usuario[6]
+
+        # Verifica se está ativo
+        if ativo == 0:
+            return jsonify({"error": "Usuário inativado"}), 400
+
+        # Verifica se email foi confirmado
+        if email_confirmado == 0:
+            return jsonify({"error": "Confirme seu e-mail antes de logar!"}), 400
+
+        # Verifica a senha
+        if check_password_hash(senha_hash, senha):
+            # Gera token com validade de 60 minutos
+            token = gerar_token(tipo, id_usuario, 60)
+
+            return jsonify({
+                'message': f'Bem-vindo {nome}!',
+                'token': token,
+                'usuario': {
+                    'id': id_usuario,
+                    'nome': nome,
+                    'email': email_usuario,
+                    'tipo': tipo
+                }
+            }), 200
+
+        return jsonify({"error": "Senha incorreta"}), 400
+
+    except Exception as e:
+        return jsonify({'error': f'Erro ao fazer login: {e}'}), 500
+    finally:
+        cur.close()
+        con.close()
+
+
+# Editar usuário (com validação de token)
 @app.route('/editar_usuarios/<int:id_usuario>', methods=['PUT'])
 def editar_usuarios(id_usuario):
+    # ========== VALIDAÇÃO DE TOKEN ==========
+    token_data = decodificar_token()
+
+    if token_data == False:
+        return jsonify({'error': 'Token necessário. Faça login primeiro.'}), 401
+
+    # Verifica se o usuário só pode editar a si mesmo (ou é admin)
+    if token_data['id_usuario'] != id_usuario and token_data['tipo'] != 0:
+        return jsonify({'error': 'Você só pode editar seu próprio perfil.'}), 403
+
     # Cria a conexão com o banco
     con = conexao()
-
-    # Abre o cursor
     cur = con.cursor()
 
     try:
@@ -123,10 +166,8 @@ def editar_usuarios(id_usuario):
                        FROM USUARIOS
                        WHERE ID_USUARIO = ?""", (id_usuario,))
 
-        # Armazena o resultado
         tem_usuario = cur.fetchone()
 
-        # Verifica se o usuário existe
         if tem_usuario == None:
             return jsonify({"error": "Usuário não encontrado"}), 404
 
@@ -149,58 +190,43 @@ def editar_usuarios(id_usuario):
 
         # Verifica se email já existe (exceto o próprio usuário)
         if email != tem_usuario[2]:
-            if verificar_existente(email, 2, id_usuario) == False:
+            if verificar_existente(email, id_usuario) == False:
                 return jsonify({"error": "E-mail já cadastrado"}), 400
 
         # Verifica se foi enviada uma nova senha
         if senha != None:
-            # Valida a força da senha
             if senha_forte(senha) == False:
                 return jsonify({
                     "error": "Senha fraca. A senha deve conter pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas, números e caracteres especiais."
                 }), 400
 
-            # Verifica se as senhas correspondem
             if senha_correspondente(senha, confirmar_senha) == False:
                 return jsonify({"error": "Senhas não correspondem."}), 400
 
-            # Criptografa a nova senha
             nova_senha_hash = generate_password_hash(senha).decode('utf-8')
         else:
-            # Mantém a senha antiga
             nova_senha_hash = tem_usuario[3]
 
         # Atualiza os dados do usuário no banco
         cur.execute("""UPDATE USUARIOS
-                       SET NOME = ?,
+                       SET NOME  = ?,
                            EMAIL = ?,
                            SENHA = ?
                        WHERE ID_USUARIO = ?""", (nome, email, nova_senha_hash, id_usuario))
 
-        # Confirma a alteração no banco
         con.commit()
 
         # Verifica se foi enviada uma nova foto
         if foto_perfil:
             try:
-                # Define nome da imagem
                 nome_imagem = f'{id_usuario}.jpeg'
-
-                # Define diretório
-                caminho_imagem_destino = os.path.join(app.config['UPLOAD_FOLDER'], "Usuarios")
-
-                # Cria diretório se não existir
+                caminho_imagem_destino = os.path.join(app.config['UPLOAD_FOLDER'], 'Usuarios')
                 os.makedirs(caminho_imagem_destino, exist_ok=True)
-
-                # Define caminho completo
                 caminho_imagem = os.path.join(caminho_imagem_destino, nome_imagem)
-
-                # Salva imagem
                 foto_perfil.save(caminho_imagem)
             except Exception as e:
                 print(f"ERRO ao salvar imagem: {e}")
 
-        # Retorna sucesso
         return jsonify({
             'message': "Usuário editado com sucesso",
             'usuario': {
@@ -217,13 +243,10 @@ def editar_usuarios(id_usuario):
         con.close()
 
 
-# Buscar usuário
 @app.route('/buscar_usuarios/<int:id_usuario>', methods=['GET'])
 def buscar_usuarios(id_usuario):
-    # Cria conexão com o banco
-    con = conexao()
 
-    # Abre o cursor
+    con = conexao()
     cur = con.cursor()
 
     try:
@@ -238,7 +261,6 @@ def buscar_usuarios(id_usuario):
 
         usuario = cur.fetchone()
 
-        # Verifica se o usuário existe
         if usuario == None:
             return jsonify({"error": "Usuário não encontrado"}), 404
 
@@ -261,17 +283,13 @@ def buscar_usuarios(id_usuario):
         con.close()
 
 
-# Listar usuários
 @app.route('/listar_usuarios', methods=['GET'])
 def listar_usuarios():
-    # Cria conexão
-    con = conexao()
 
-    # Abre cursor
+    con = conexao()
     cur = con.cursor()
 
     try:
-        # Busca todos os usuários
         cur.execute("""SELECT ID_USUARIO,
                               NOME,
                               EMAIL,
@@ -313,17 +331,13 @@ def listar_usuarios():
         con.close()
 
 
-# Excluir usuário
 @app.route('/deletar_usuarios/<int:id_usuario>', methods=['DELETE'])
 def deletar_usuarios(id_usuario):
-    # Cria a conexão com o banco
-    con = conexao()
 
-    # Abre o cursor
+    con = conexao()
     cur = con.cursor()
 
     try:
-        # Verifica se o usuário existe
         cur.execute("""SELECT ID_USUARIO, NOME
                        FROM USUARIOS
                        WHERE ID_USUARIO = ?""", (id_usuario,))
@@ -333,19 +347,16 @@ def deletar_usuarios(id_usuario):
         if usuario == None:
             return jsonify({"error": "Usuário não encontrado"}), 404
 
-        # Remove foto se existir
         caminho_foto = os.path.join(app.config['UPLOAD_FOLDER'], f'Usuarios/{id_usuario}.jpeg')
         if os.path.exists(caminho_foto):
             os.remove(caminho_foto)
 
-        # Remove o usuário da tabela principal
         cur.execute("""DELETE
                        FROM USUARIOS
                        WHERE ID_USUARIO = ?""", (id_usuario,))
 
         con.commit()
 
-        # Retorna sucesso
         return jsonify({
             'message': f"Usuário {usuario[1]} deletado com sucesso!",
             'id': id_usuario
