@@ -2,7 +2,7 @@ from flask import jsonify, request, make_response
 from flask_bcrypt import generate_password_hash, check_password_hash
 from main import app
 from db import conexao
-from funcao import senha_forte, verificar_existente, senha_correspondente,senha_antiga, gerar_token, decodificar_token, enviando_email
+from funcao import senha_forte, verificar_existente, senha_correspondente, senha_antiga, gerar_token, decodificar_token, enviando_email, renderizar_template
 import os
 import datetime
 from random import randint
@@ -61,13 +61,24 @@ def criar_usuarios():
             except Exception as e:
                 print(f"Erro ao salvar foto: {e}")
 
-        # Envia e-mail de confirmação em background
-        # ✅ CORRIGIDO: passa credenciais direto pois current_app não funciona em threads
+        # Envia e-mail de confirmação com template HTML
         email_user  = app.config.get('EMAIL_REMETENTE', '')
         email_senha = app.config.get('EMAIL_SENHA', '')
-        assunto   = 'Confirmação de E-mail - Maintenance'
-        mensagem  = f'Olá {nome}!\n\nSeu código de confirmação é: {codigo_confirmacao}\n\nMaintenance System'
-        threading.Thread(target=enviando_email, args=(email, assunto, mensagem, email_user, email_senha)).start()
+        assunto  = 'Confirmação de E-mail - Maintenance'
+        mensagem = f'Olá {nome}! Seu código de confirmação é: {codigo_confirmacao}. Válido por 10 minutos.'
+        html = renderizar_template(
+            os.path.join(os.path.dirname(__file__), 'templates', 'email_codigo.html'),
+            {
+                'assunto':   'Confirmação de E-mail',
+                'titulo':    'Confirme seu cadastro',
+                'subtitulo': 'Você está a um passo de acessar o sistema.',
+                'nome':      nome,
+                'mensagem':  'Para ativar sua conta, utilize o código de verificação abaixo:',
+                'codigo':    codigo_confirmacao,
+                'validade':  '10 minutos',
+            }
+        )
+        threading.Thread(target=enviando_email, args=(email, assunto, mensagem, email_user, email_senha, html)).start()
 
         return jsonify({'message': "Usuário cadastrado! Verifique seu e-mail para confirmar o cadastro."}), 201
 
@@ -115,9 +126,6 @@ def confirmar_email():
         con.close()
 
 
-# ============================================================
-# LOGIN
-# ============================================================
 @app.route('/login', methods=['POST'])
 def login():
     email = request.form.get('email')
@@ -228,12 +236,24 @@ def esqueci_senha():
                     (codigo, usuario[0]))
         con.commit()
 
-        # ✅ CORRIGIDO: passa credenciais direto pois current_app não funciona em threads
+        # Envia e-mail de recuperação com template HTML
         email_user  = app.config.get('EMAIL_REMETENTE', '')
         email_senha = app.config.get('EMAIL_SENHA', '')
         assunto  = 'Recuperação de Senha - Maintenance'
-        mensagem = f'Olá {usuario[1]}!\n\nSeu código de recuperação é: {codigo}\n\nMaintenance System'
-        threading.Thread(target=enviando_email, args=(email, assunto, mensagem, email_user, email_senha)).start()
+        mensagem = f'Olá {usuario[1]}! Seu código de recuperação é: {codigo}. Válido por 5 minutos.'
+        html = renderizar_template(
+            os.path.join(os.path.dirname(__file__), 'templates', 'email_codigo.html'),
+            {
+                'assunto':   'Recuperação de Senha',
+                'titulo':    'Redefinição de senha',
+                'subtitulo': 'Recebemos uma solicitação para redefinir sua senha.',
+                'nome':      usuario[1],
+                'mensagem':  'Use o código abaixo para criar uma nova senha. Se não foi você, ignore este e-mail.',
+                'codigo':    str(codigo),
+                'validade':  '5 minutos',
+            }
+        )
+        threading.Thread(target=enviando_email, args=(email, assunto, mensagem, email_user, email_senha, html)).start()
 
         return jsonify({'message': 'Código enviado para o e-mail!'}), 200
 

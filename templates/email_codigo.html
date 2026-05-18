@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{assunto}} - Maintenance</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        body { margin: 0; padding: 0; background-color: #f0f4f8; font-family: 'Inter', Arial, sans-serif; }
+    </style>
+</head>
+<body style="margin:0; padding:0; background-color:#f0f4f8; font-family:'Inter', Arial, sans-serif;">
+
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f0f4f8; padding:40px 0;">
+        <tr>
+            <td align="center">
+                <table border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px; width:100%; background-color:#ffffff; border-radius:12px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+                    <!-- CABEÇALHO -->
+                    <tr>
+                        <td align="center" style="background-color:#5aabdd; padding:32px 20px;">
+                            <p style="margin:0; font-size:28px; font-weight:800; color:#ffffff; letter-spacing:2px;">MAINTENANCE</p>
+                            <p style="margin:6px 0 0; font-size:13px; font-weight:400; color:#d6eef9; letter-spacing:1px;">Sistema de Gestão</p>
+                        </td>
+                    </tr>
+
+                    <!-- CORPO -->
+                    <tr>
+                        <td style="padding:40px 36px 32px;">
+
+                            <h2 style="margin:0 0 8px; font-size:22px; font-weight:700; color:#1a1a2e;">{{titulo}}</h2>
+                            <p style="margin:0 0 28px; font-size:15px; color:#666; line-height:1.6;">{{subtitulo}}</p>
+
+                            <p style="margin:0 0 10px; font-size:15px; color:#444; line-height:1.7;">
+                                Olá, <strong style="color:#1a1a2e;">{{nome}}</strong>!
+                            </p>
+                            <p style="margin:0 0 28px; font-size:15px; color:#555; line-height:1.7;">
+                                {{mensagem}}
+                            </p>
+
+                            <!-- CAIXA DO CÓDIGO -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 32px;">
+                                <tr>
+                                    <td align="center">
+                                        <div style="display:inline-block; background-color:#f0f7fb; border:2px dashed #5aabdd; border-radius:10px; padding:18px 40px;">
+                                            <p style="margin:0 0 4px; font-size:11px; font-weight:600; color:#5aabdd; letter-spacing:2px; text-transform:uppercase;">Seu código</p>
+                                            <p style="margin:0; font-size:36px; font-weight:800; color:#1a78b4; letter-spacing:10px;">{{codigo}}</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- AVISO DE EXPIRAÇÃO -->
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:28px;">
+                                <tr>
+                                    <td style="background-color:#fff8e1; border-left:4px solid #f9a825; border-radius:0 6px 6px 0; padding:12px 16px;">
+                                        <p style="margin:0; font-size:13px; color:#7a6000; line-height:1.5;">
+                                            ⏱ Este código é válido por <strong>{{validade}}</strong>. Não compartilhe com ninguém.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="margin:0; font-size:13px; color:#999; line-height:1.6;">
+                                Se você não solicitou isso, pode ignorar este e-mail com segurança. Sua conta continua protegida.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- FAIXA COLORIDA -->
+                    <tr>
+                        <td style="height:4px; background:linear-gradient(90deg, #5aabdd 0%, #1a78b4 50%, #5aabdd 100%);"></td>
+                    </tr>
+
+                    <!-- RODAPÉ -->
+                    <tr>
+                        <td style="background-color:#1a1a2e; padding:28px 36px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <tr>
+                                    <td>
+                                        <p style="margin:0 0 4px; font-size:15px; font-weight:700; color:#5aabdd; letter-spacing:1px;">MAINTENANCE</p>
+                                        <p style="margin:0; font-size:12px; color:#888; line-height:1.6;">
+                                            Este é um e-mail automático. Por favor, não responda.
+                                        </p>
+                                    </td>
+                                    <td align="right" valign="middle">
+                                        <p style="margin:0; font-size:11px; color:#555;">
+                                            &copy; 2026 Maintenance System
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

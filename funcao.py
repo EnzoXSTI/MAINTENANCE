@@ -122,8 +122,26 @@ def decodificar_token():
 
 
 
-def enviando_email(destinatario, assunto, mensagem, user=None, senha=None):
+# ============================================================
+# RENDERIZAR TEMPLATE HTML
+# ============================================================
+def renderizar_template(caminho_template, variaveis):
+    """Lê um arquivo HTML e substitui {{variavel}} pelos valores do dicionário."""
+    try:
+        with open(caminho_template, 'r', encoding='utf-8') as f:
+            html = f.read()
+        for chave, valor in variaveis.items():
+            html = html.replace('{{' + chave + '}}', str(valor))
+        return html
+    except Exception as e:
+        print(f"ERRO ao renderizar template: {e}")
+        return None
 
+
+# ============================================================
+# ENVIAR E-MAIL
+# ============================================================
+def enviando_email(destinatario, assunto, mensagem, user=None, senha=None, html=None):
     if not user or not senha:
         try:
             user  = current_app.config.get('EMAIL_REMETENTE', '')
@@ -132,10 +150,21 @@ def enviando_email(destinatario, assunto, mensagem, user=None, senha=None):
             print("ERRO: current_app não disponível e credenciais não fornecidas.")
             return
     try:
-        msg = MIMEText(mensagem, 'plain', 'utf-8')
-        msg['From']    = user
-        msg['To']      = destinatario
-        msg['Subject'] = assunto
+        from email.mime.multipart import MIMEMultipart
+
+        if html:
+            # ✅ Envia e-mail HTML com fallback em texto simples
+            msg = MIMEMultipart('alternative')
+            msg['From']    = user
+            msg['To']      = destinatario
+            msg['Subject'] = assunto
+            msg.attach(MIMEText(mensagem, 'plain', 'utf-8'))
+            msg.attach(MIMEText(html, 'html', 'utf-8'))
+        else:
+            msg = MIMEText(mensagem, 'plain', 'utf-8')
+            msg['From']    = user
+            msg['To']      = destinatario
+            msg['Subject'] = assunto
 
         server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
         server.login(user, senha)
