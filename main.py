@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 CORS(app,
-     origins=["http://localhost:5173", "http://10.92.3.224:5000"],
+     origins=["http://localhost:5173", "http://192.168.1.114:5000"],
      supports_credentials=True
 )
 
@@ -21,7 +21,6 @@ os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'Usuarios'), exist_ok=True
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# Importa as rotas
 from usuario import *
 
 if __name__ == '__main__':

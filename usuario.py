@@ -151,21 +151,20 @@ def login():
         if confirmado == 0:
             return jsonify({"error": "Confirme seu e-mail antes de logar!"}), 400
 
-        # Senha errada
         if not check_password_hash(senha_hash, senha):
             nova_tentativa = tentativas + 1
 
-            if nova_tentativa >= 3:
-                # Bloqueia o usuário
+            if nova_tentativa >= 3 and tipo != 0:
                 cur.execute("UPDATE USUARIOS SET TENTATIVA = ?, ATIVO = 0 WHERE ID_USUARIO = ?",
                             (nova_tentativa, id_usuario))
                 con.commit()
-                return jsonify({"error": "Usuário bloqueado após 3 tentativas incorretas. Contate o administrador."}), 403
+                return jsonify(
+                    {"error": "Usuário bloqueado após 3 tentativas incorretas. Contate o administrador."}), 403
 
             cur.execute("UPDATE USUARIOS SET TENTATIVA = ? WHERE ID_USUARIO = ?",
                         (nova_tentativa, id_usuario))
             con.commit()
-            return jsonify({"error": f"Senha incorreta. Tentativa {nova_tentativa} de 3."}), 400
+            return jsonify({"error": "Senha incorreta."}), 400
 
         # Login OK — zera tentativas, gera token de 10 minutos
         cur.execute("UPDATE USUARIOS SET TENTATIVA = 0 WHERE ID_USUARIO = ?", (id_usuario,))
@@ -399,15 +398,15 @@ def buscar_usuarios(id_usuario):
     try:
         cur.execute("""SELECT ID_USUARIO, NOME, EMAIL, TIPO, DATA_CADASTRO, ATIVO
                        FROM USUARIOS WHERE ID_USUARIO = ?""", (id_usuario,))
-        u = cur.fetchone()
+        usuario = cur.fetchone()
 
-        if not u:
+        if not usuario:
             return jsonify({"error": "Usuário não encontrado"}), 404
 
         return jsonify({'usuario': {
-            'id': u[0], 'nome': u[1], 'email': u[2], 'tipo': u[3],
-            'data_cadastro': u[4].strftime('%d/%m/%Y %H:%M:%S') if u[4] else None,
-            'ativo': bool(u[5])
+            'id': usuario[0], 'nome': usuario[1], 'email': usuario[2], 'tipo': usuario[3],
+            'data_cadastro': usuario[4].strftime('%d/%m/%Y %H:%M:%S') if usuario[4] else None,
+            'ativo': bool(usuario[5])
         }}), 200
 
     except Exception as e:
