@@ -9,9 +9,6 @@ from random import randint
 import threading
 
 
-# ============================================================
-# CRIAR USUÁRIO
-# ============================================================
 @app.route('/criar_usuarios', methods=['POST'])
 def criar_usuarios():
     nome          = request.form.get('nome', None)

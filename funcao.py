@@ -121,12 +121,7 @@ def decodificar_token():
         return False
 
 
-
-# ============================================================
-# RENDERIZAR TEMPLATE HTML
-# ============================================================
 def renderizar_template(caminho_template, variaveis):
-    """Lê um arquivo HTML e substitui {{variavel}} pelos valores do dicionário."""
     try:
         with open(caminho_template, 'r', encoding='utf-8') as f:
             html = f.read()
@@ -138,9 +133,6 @@ def renderizar_template(caminho_template, variaveis):
         return None
 
 
-# ============================================================
-# ENVIAR E-MAIL
-# ============================================================
 def enviando_email(destinatario, assunto, mensagem, user=None, senha=None, html=None):
     if not user or not senha:
         try:
@@ -153,7 +145,6 @@ def enviando_email(destinatario, assunto, mensagem, user=None, senha=None, html=
         from email.mime.multipart import MIMEMultipart
 
         if html:
-            # ✅ Envia e-mail HTML com fallback em texto simples
             msg = MIMEMultipart('alternative')
             msg['From']    = user
             msg['To']      = destinatario
