@@ -50,7 +50,6 @@ def criar_usuarios():
         id_usuario = cur.fetchone()[0]
         con.commit()
 
-        # Salva foto
         if foto_perfil:
             try:
                 caminho = os.path.join(app.config['UPLOAD_FOLDER'], 'Usuarios', f'{id_usuario}.jpeg')
@@ -58,7 +57,6 @@ def criar_usuarios():
             except Exception as e:
                 print(f"Erro ao salvar foto: {e}")
 
-        # Envia e-mail de confirmação com template HTML
         email_user  = app.config.get('EMAIL_REMETENTE', '')
         email_senha = app.config.get('EMAIL_SENHA', '')
         assunto  = 'Confirmação de E-mail - Maintenance'
@@ -87,9 +85,6 @@ def criar_usuarios():
         con.close()
 
 
-# ============================================================
-# CONFIRMAR E-MAIL
-# ============================================================
 @app.route('/confirmar_email', methods=['POST'])
 def confirmar_email():
     email  = request.form.get('email')
@@ -148,11 +143,9 @@ def login():
         confirmado = usuario[6]
         tentativas = usuario[7]
 
-        # Verifica se está bloqueado
         if ativo == 0:
             return jsonify({"error": "Usuário bloqueado. Entre em contato com o administrador."}), 403
 
-        # Verifica se confirmou o e-mail
         if confirmado == 0:
             return jsonify({"error": "Confirme seu e-mail antes de logar!"}), 400
 
@@ -171,13 +164,11 @@ def login():
             con.commit()
             return jsonify({"error": "Senha incorreta."}), 400
 
-        # Login OK — zera tentativas, gera token de 10 minutos
         cur.execute("UPDATE USUARIOS SET TENTATIVA = 0 WHERE ID_USUARIO = ?", (id_usuario,))
         con.commit()
 
         token = gerar_token(tipo, id_usuario, 10)
 
-        # Coloca token no cookie e também retorna no JSON
         resp = make_response(jsonify({
             'message': f'Bem-vindo {nome}!',
             'token': token,
@@ -196,9 +187,6 @@ def login():
         con.close()
 
 
-# ============================================================
-# LOGOUT
-# ============================================================
 @app.route('/logout', methods=['POST'])
 def logout():
     resp = make_response(jsonify({'message': 'Logout realizado com sucesso!'}), 200)
@@ -206,9 +194,6 @@ def logout():
     return resp
 
 
-# ============================================================
-# ESQUECI MINHA SENHA — ENVIA CÓDIGO
-# ============================================================
 @app.route('/esqueci_senha', methods=['POST'])
 def esqueci_senha():
     email = request.form.get('email')
@@ -233,7 +218,6 @@ def esqueci_senha():
                     (codigo, usuario[0]))
         con.commit()
 
-        # Envia e-mail de recuperação com template HTML
         email_user  = app.config.get('EMAIL_REMETENTE', '')
         email_senha = app.config.get('EMAIL_SENHA', '')
         assunto  = 'Recuperação de Senha - Maintenance'
@@ -261,9 +245,6 @@ def esqueci_senha():
         con.close()
 
 
-# ============================================================
-# VERIFICAR CÓDIGO DE RECUPERAÇÃO
-# ============================================================
 @app.route('/verificar_codigo', methods=['POST'])
 def verificar_codigo():
     email  = request.form.get('email')
@@ -282,12 +263,8 @@ def verificar_codigo():
         if str(usuario[2]) != str(codigo):
             return jsonify({'error': 'Código inválido!'}), 400
 
-        # Gera token temporário de 5 minutos para redefinir senha
         token = gerar_token(usuario[1], usuario[0], 5)
 
-        # ✅ CORRIGIDO: retorna o token no JSON em vez de cookie.
-        # O front salva no localStorage e manda via header Authorization: Bearer.
-        # Isso evita o bloqueio de cookie cross-origin em HTTP local (samesite/secure).
         return jsonify({
             'message': 'Código correto! Você tem 5 minutos para redefinir sua senha.',
             'token': token
@@ -300,9 +277,6 @@ def verificar_codigo():
         con.close()
 
 
-# ============================================================
-# REDEFINIR SENHA
-# ============================================================
 @app.route('/redefinir_senha', methods=['POST'])
 def redefinir_senha():
     token_data = decodificar_token()
@@ -338,9 +312,6 @@ def redefinir_senha():
         con.close()
 
 
-# ============================================================
-# EDITAR USUÁRIO
-# ============================================================
 @app.route('/editar_usuarios/<int:id_usuario>', methods=['PUT'])
 def editar_usuarios(id_usuario):
     token_data = decodificar_token()
@@ -404,9 +375,6 @@ def editar_usuarios(id_usuario):
         con.close()
 
 
-# ============================================================
-# BUSCAR USUÁRIO
-# ============================================================
 @app.route('/buscar_usuarios/<int:id_usuario>', methods=['GET'])
 def buscar_usuarios(id_usuario):
     con = conexao()
@@ -433,9 +401,6 @@ def buscar_usuarios(id_usuario):
         con.close()
 
 
-# ============================================================
-# LISTAR USUÁRIOS
-# ============================================================
 @app.route('/listar_usuarios', methods=['GET'])
 def listar_usuarios():
     con = conexao()
@@ -459,9 +424,6 @@ def listar_usuarios():
         con.close()
 
 
-# ============================================================
-# DELETAR USUÁRIO (somente ADM)
-# ============================================================
 @app.route('/deletar_usuarios/<int:id_usuario>', methods=['DELETE'])
 def deletar_usuarios(id_usuario):
     token_data = decodificar_token()
@@ -498,10 +460,6 @@ def deletar_usuarios(id_usuario):
         cur.close()
         con.close()
 
-
-# ============================================================
-# DESBLOQUEAR USUÁRIO (somente ADM)
-# ============================================================
 @app.route('/desbloquear_usuario/<int:id_usuario>', methods=['PUT'])
 def desbloquear_usuario(id_usuario):
     token_data = decodificar_token()

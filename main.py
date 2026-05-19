@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 CORS(app,
-     origins=["http://localhost:5173", "http://192.168.1.124:5173"],
+     origins=["http://localhost:5173", "http://10.92.3.126:5173"],  # ← corrige a porta aqui também
      supports_credentials=True
 )
 
@@ -14,7 +14,6 @@ app.config.from_pyfile('config.py')
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'Usuarios'), exist_ok=True)
-
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
