@@ -354,8 +354,15 @@ def editar_usuarios(id_usuario):
         else:
             nova_hash = usuario[3]
 
-        cur.execute("UPDATE USUARIOS SET NOME = ?, EMAIL = ?, SENHA = ? WHERE ID_USUARIO = ?",
-                    (nome, email, nova_hash, id_usuario))
+        email_mudou = email != usuario[2]
+
+        if email_mudou:
+            codigo_confirmacao = str(randint(100000, 999999))
+            cur.execute('UPDATE USUARIOS SET NOME = ?, EMAIL = ?, SENHA = ?, EMAIL_CONFIRMACAO = 0, CODIGO_VERIFICACAO = ? WHERE ID_USUARIO = ?',
+                        (nome, email, nova_hash, codigo_confirmacao, id_usuario))
+        else:
+            cur.execute('UPDATE USUARIOS SET NOME = ?, EMAIL = ?, SENHA = ? WHERE ID_USUARIO = ?',
+                        (nome, email, nova_hash, id_usuario))
         con.commit()
 
         if foto_perfil:
@@ -363,9 +370,30 @@ def editar_usuarios(id_usuario):
                 caminho = os.path.join(app.config['UPLOAD_FOLDER'], 'Usuarios', f'{id_usuario}.jpeg')
                 foto_perfil.save(caminho)
             except Exception as e:
-                print(f"Erro ao salvar foto: {e}")
+                print(f'Erro ao salvar foto: {e}')
 
-        return jsonify({'message': "Usuário editado com sucesso!",
+        if email_mudou:
+            email_user  = app.config.get('EMAIL_REMETENTE', '')
+            email_senha = app.config.get('EMAIL_SENHA', '')
+            assunto  = 'Confirmacao de E-mail - Maintenance'
+            mensagem_email = f'Ola {nome}! Seu codigo de confirmacao e: {codigo_confirmacao}. Valido por 10 minutos.'
+            html = renderizar_template(
+                os.path.join(os.path.dirname(__file__), 'templates', 'email_codigo.html'),
+                {
+                    'assunto':   'Confirmacao de E-mail',
+                    'titulo':    'Confirme seu novo e-mail',
+                    'subtitulo': 'Seu e-mail foi alterado.',
+                    'nome':      nome,
+                    'mensagem':  'Para confirmar o novo e-mail, utilize o codigo abaixo:',
+                    'codigo':    codigo_confirmacao,
+                    'validade':  '10 minutos',
+                }
+            )
+            threading.Thread(target=enviando_email, args=(email, assunto, mensagem_email, email_user, email_senha, html)).start()
+            return jsonify({'message': 'Usuario editado! Confirme o novo e-mail.', 'email_mudou': True,
+                            'usuario': {'id': id_usuario, 'nome': nome, 'email': email}}), 200
+
+        return jsonify({'message': 'Usuario editado com sucesso!', 'email_mudou': False,
                         'usuario': {'id': id_usuario, 'nome': nome, 'email': email}}), 200
 
     except Exception as e:
