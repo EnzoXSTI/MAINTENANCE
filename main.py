@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 CORS(app,
-     origins=["http://localhost:5173", "http://10.92.3.126:5173"],  # ← corrige a porta aqui também
+     origins=["http://localhost:5173", "http://10.92.3.149:5173"],
      supports_credentials=True
 )
 
