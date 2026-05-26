@@ -488,6 +488,23 @@ def deletar_usuarios(id_usuario):
         cur.close()
         con.close()
 
+@app.route('/bloquear_usuario/<int:id_usuario>', methods=['PUT'])
+def bloquear_usuario(id_usuario):
+    dados = decodificar_token()
+    if not dados or dados['tipo'] != 0:
+        return jsonify({'error': 'Acesso negado.'}), 403
+    con = conexao()
+    cur = con.cursor()
+    try:
+        cur.execute("UPDATE USUARIOS SET ATIVO = 0 WHERE ID_USUARIO = ?", (id_usuario,))
+        con.commit()
+        return jsonify({"message": "Usuário bloqueado com sucesso!"}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        cur.close()
+        con.close()
+
 @app.route('/desbloquear_usuario/<int:id_usuario>', methods=['PUT'])
 def desbloquear_usuario(id_usuario):
     token_data = decodificar_token()
