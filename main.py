@@ -14,12 +14,14 @@ app.config.from_pyfile('config.py')
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 app.config['UPLOAD_FOLDER'] = os.path.join(BASE_DIR, 'uploads')
 os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'Usuarios'), exist_ok=True)
+os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'Chamados'), exist_ok=True)
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 from usuario import *
+from chamado import *
 
 if __name__ == '__main__':
     print("\n=== ROTAS REGISTRADAS ===")
