@@ -102,7 +102,7 @@ def listar_chamados():
         if token_data['tipo'] in (0, 2):
             cur.execute("""
                 SELECT C.ID_CHAMADO, U.NOME, C.SALA, C.TITULO, C.PATRIMONIO,
-                       C.SITUACAO, C.DESCRICAO, C.DATA_ABERTURA
+                       C.SITUACAO, C.DESCRICAO, C.DATA_ABERTURA, C.DATA_FINALIZACAO
                 FROM CHAMADOS C
                 JOIN USUARIOS U ON U.ID_USUARIO = C.ID_USUARIO
                 ORDER BY C.ID_CHAMADO DESC
@@ -110,7 +110,7 @@ def listar_chamados():
         else:
             cur.execute("""
                 SELECT C.ID_CHAMADO, U.NOME, C.SALA, C.TITULO, C.PATRIMONIO,
-                       C.SITUACAO, C.DESCRICAO, C.DATA_ABERTURA
+                       C.SITUACAO, C.DESCRICAO, C.DATA_ABERTURA, C.DATA_FINALIZACAO
                 FROM CHAMADOS C
                 JOIN USUARIOS U ON U.ID_USUARIO = C.ID_USUARIO
                 WHERE C.ID_USUARIO = ?
@@ -128,8 +128,10 @@ def listar_chamados():
                 'patrimonio':    r[4],
                 'situacao':      r[5],
                 'descricao':     r[6],
-                'data_abertura': r[7].strftime('%d/%m/%Y %H:%M') if r[7] else None,
-                'foto':          f'/uploads/Chamados/{r[0]}.jpeg' if os.path.exists(foto_path) else None,
+                'data_abertura':    r[7].strftime('%d/%m/%Y %H:%M') if r[7] else None,
+                'data_finalizacao': r[8].strftime('%d/%m/%Y %H:%M') if r[8] else None,
+                'situacao':         r[5],
+                'foto':             f'/uploads/Chamados/{r[0]}.jpeg' if os.path.exists(foto_path) else None,
             })
 
         return jsonify({'total': len(chamados), 'chamados': chamados}), 200
