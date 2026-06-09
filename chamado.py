@@ -6,32 +6,6 @@ import os
 import datetime
 
 
-@app.route('/me', methods=['GET'])
-def me():
-    token_data = decodificar_token()
-    if not token_data:
-        return jsonify({'error': 'Token necessário'}), 401
-
-    con = conexao()
-    cur = con.cursor()
-
-    try:
-        cur.execute("SELECT ID_USUARIO, NOME, TIPO FROM USUARIOS WHERE ID_USUARIO = ?",
-                    (token_data['id_usuario'],))
-        u = cur.fetchone()
-
-        if not u:
-            return jsonify({'error': 'Usuário não encontrado'}), 404
-
-        return jsonify({'id_usuario': u[0], 'nome': u[1], 'tipo': u[2]}), 200
-
-    except Exception as e:
-        return jsonify({'error': f'Erro: {e}'}), 500
-    finally:
-        cur.close()
-        con.close()
-
-
 @app.route('/criar_chamado', methods=['POST'])
 def criar_chamado():
     token_data = decodificar_token()
@@ -50,16 +24,7 @@ def criar_chamado():
     cur = con.cursor()
 
     try:
-        if not sala or sala.strip() == '':
-            return jsonify({'error': 'Sala é obrigatória'}), 400
-        if not titulo or titulo.strip() == '':
-            return jsonify({'error': 'Título é obrigatório'}), 400
-        if not descricao or descricao.strip() == '':
-            return jsonify({'error': 'Descrição é obrigatória'}), 400
-        if not situacao or situacao.strip() == '':
-            return jsonify({'error': 'Situação é obrigatória'}), 400
-        if situacao not in ['Aguardando', 'Em andamento']:
-            return jsonify({'error': 'Situação inválida'}), 400
+
 
         cur.execute("""
             INSERT INTO CHAMADOS (ID_USUARIO, SALA, PATRIMONIO, TITULO, DESCRICAO, SITUACAO, DATA_ABERTURA)
@@ -98,7 +63,6 @@ def listar_chamados():
     cur = con.cursor()
 
     try:
-        # ADM (0) e Técnico (2) veem todos; Usuário comum (1) só vê os próprios
         if token_data['tipo'] in (0, 2):
             cur.execute("""
                 SELECT C.ID_CHAMADO, U.NOME, C.SALA, C.TITULO, C.PATRIMONIO,
@@ -130,7 +94,6 @@ def listar_chamados():
                 'descricao':     r[6],
                 'data_abertura':    r[7].strftime('%d/%m/%Y %H:%M') if r[7] else None,
                 'data_finalizacao': r[8].strftime('%d/%m/%Y %H:%M') if r[8] else None,
-                'situacao':         r[5],
                 'foto':             f'/uploads/Chamados/{r[0]}.jpeg' if os.path.exists(foto_path) else None,
             })
 
@@ -165,7 +128,6 @@ def buscar_chamado(id_chamado):
         if not r:
             return jsonify({'error': 'Chamado não encontrado'}), 404
 
-        # Usuário comum só acessa o próprio chamado
         if token_data['tipo'] == 1 and r[8] != token_data['id_usuario']:
             return jsonify({'error': 'Acesso negado'}), 403
 
@@ -227,16 +189,7 @@ def atualizar_chamado(id_chamado):
         descricao  = request.form.get('descricao', None)
         situacao   = request.form.get('situacao', None)
 
-        if not sala or sala.strip() == '':
-            return jsonify({'error': 'Sala é obrigatória'}), 400
-        if not titulo or titulo.strip() == '':
-            return jsonify({'error': 'Título é obrigatório'}), 400
-        if not descricao or descricao.strip() == '':
-            return jsonify({'error': 'Descrição é obrigatória'}), 400
-        if not situacao or situacao.strip() == '':
-            return jsonify({'error': 'Situação é obrigatória'}), 400
-        if situacao not in ['Aguardando', 'Em andamento', 'Urgente']:
-            return jsonify({'error': 'Situação inválida'}), 400
+
 
         cur.execute("""
             UPDATE CHAMADOS SET SALA = ?, PATRIMONIO = ?, TITULO = ?, DESCRICAO = ?, SITUACAO = ?
@@ -260,7 +213,6 @@ def concluir_chamado(id_chamado):
     if not token_data:
         return jsonify({'error': 'Token necessário'}), 401
 
-    # Apenas ADM (0) e Técnico (2) podem concluir
     if token_data['tipo'] == 1:
         return jsonify({'error': 'Sem permissão para concluir chamados'}), 403
 
@@ -403,8 +355,6 @@ def deletar_chamado(id_chamado):
     token_data = decodificar_token()
     if not token_data:
         return jsonify({'error': 'Token necessário'}), 401
-    if token_data['tipo'] != 0:
-        return jsonify({'error': 'Apenas ADM pode deletar chamados'}), 403
 
     con = conexao()
     cur = con.cursor()
@@ -414,10 +364,12 @@ def deletar_chamado(id_chamado):
         if not cur.fetchone():
             return jsonify({'error': 'Chamado não encontrado'}), 404
 
+        # Remove os vínculos dos técnicos primeiro (chave estrangeira) e depois o chamado
         cur.execute("DELETE FROM CHAMADO_TECNICOS WHERE ID_CHAMADO = ?", (id_chamado,))
         cur.execute("DELETE FROM CHAMADOS WHERE ID_CHAMADO = ?", (id_chamado,))
         con.commit()
 
+        # Remove a foto se ela existir
         foto_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Chamados', f'{id_chamado}.jpeg')
         if os.path.exists(foto_path):
             os.remove(foto_path)
