@@ -221,7 +221,7 @@ def esqueci_senha():
         email_user  = app.config.get('EMAIL_REMETENTE', '')
         email_senha = app.config.get('EMAIL_SENHA', '')
         assunto  = 'Recuperação de Senha - Maintenance'
-        mensagem = f'Olá {usuario[1]}! Seu código de recuperação é: {codigo}. Válido por 5 minutos.'
+        mensagem = f'Olá {usuario[1]}! Seu código de recuperação é: {codigo}.'
         html = renderizar_template(
             os.path.join(os.path.dirname(__file__), 'templates', 'email_codigo.html'),
             {
@@ -376,7 +376,7 @@ def editar_usuarios(id_usuario):
             email_user  = app.config.get('EMAIL_REMETENTE', '')
             email_senha = app.config.get('EMAIL_SENHA', '')
             assunto  = 'Confirmacao de E-mail - Maintenance'
-            mensagem_email = f'Ola {nome}! Seu codigo de confirmacao e: {codigo_confirmacao}. Valido por 10 minutos.'
+            mensagem_email = f'Ola {nome}! Seu codigo de confirmacao e: {codigo_confirmacao}.'
             html = renderizar_template(
                 os.path.join(os.path.dirname(__file__), 'templates', 'email_codigo.html'),
                 {

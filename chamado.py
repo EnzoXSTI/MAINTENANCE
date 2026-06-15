@@ -83,9 +83,18 @@ def listar_chamados():
 
         chamados = []
         for r in cur.fetchall():
+
             foto_path = os.path.join(app.config['UPLOAD_FOLDER'], 'Chamados', f'{r[0]}.jpeg')
+            cur.execute("SELECT ID_TECNICO FROM CHAMADO_TECNICOS WHERE ID_CHAMADO = ?", (r[0],))
+            tem_tecnico = cur.fetchall()
+            ids_tecnicos = None
+            if tem_tecnico:
+                ids_tecnicos = [row[0] for row in tem_tecnico]
+
             chamados.append({
                 'id_chamado':    r[0],
+                'tem_tecnico': True if tem_tecnico else False,
+                'id_tecnico_atribuido': ids_tecnicos if ids_tecnicos else None,
                 'autor':         r[1],
                 'sala':          r[2],
                 'titulo':        r[3],
