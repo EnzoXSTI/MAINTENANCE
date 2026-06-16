@@ -531,3 +531,10 @@ def desbloquear_usuario(id_usuario):
     finally:
         cur.close()
         con.close()
+
+@app.route('/verificar_token', methods=['GET'])
+def verificar_token():
+    token_data = decodificar_token()
+    if not token_data:
+        return jsonify({'error': 'Token inválido ou expirado'}), 401
+    return jsonify({'valido': True }), 200
